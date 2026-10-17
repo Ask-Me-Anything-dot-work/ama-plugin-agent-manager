@@ -1,16 +1,18 @@
 import { expect, test, describe } from 'bun:test';
 import { createAgentsRouter } from '../src/routes/agents.route.js';
+import { AgentsService } from '../src/services/agents.service.js';
+import { InMemoryAgentsRepository } from './helpers/agents-repo.js';
+
+const router = createAgentsRouter(new AgentsService(new InMemoryAgentsRepository()));
 
 describe('Plugin routes', () => {
-  const router = createAgentsRouter();
-
   test('GET /health returns ok', async () => {
     const res = await router.request('/health');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: 'ok' });
   });
 
-  test('GET /agents returns empty stub list', async () => {
+  test('GET /agents returns empty list for empty DB', async () => {
     const res = await router.request('/agents');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual([]);

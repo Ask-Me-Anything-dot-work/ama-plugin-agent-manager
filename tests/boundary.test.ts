@@ -8,6 +8,7 @@ const ALLOWED = [
   '@ama-work/plugin-contract',
   'hono',
   'zod',
+  'pg',
 ];
 
 function srcFiles(dir: string): string[] {
@@ -46,7 +47,7 @@ describe('Import boundary', () => {
     expect(files.length).toBeGreaterThan(0);
   });
 
-  test('only contract, hono, zod, node builtins, and relative imports are used', () => {
+  test('only contract, hono, zod, pg, node builtins, and relative imports are used', () => {
     const violations: string[] = [];
     for (const file of files) {
       for (const spec of importsOf(file)) {
