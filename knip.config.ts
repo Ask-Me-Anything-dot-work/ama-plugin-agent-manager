@@ -2,6 +2,7 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   project: ['src/**/*.ts', 'tests/**/*.ts'],
+  ignoreExportsUsedInFile: true,
   ignoreDependencies: [
     '@semantic-release/commit-analyzer',
     '@semantic-release/github',
