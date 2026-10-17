@@ -56,6 +56,25 @@ describe('Managed section affordances', () => {
     expect(managedSectionHtml).toContain('data-agents-field-enabled');
   });
 
+  test('MCP profile is a select picker, not free text', () => {
+    expect(managedSectionHtml).toContain('<select');
+    expect(managedSectionHtml).toContain('data-agents-field-mcp-profile');
+    expect(managedSectionHtml).toContain('None (no MCP tools)');
+    expect(managedSectionHtml).not.toMatch(
+      /<input[^>]*data-agents-field-mcp-profile/,
+    );
+  });
+
+  test('picker has refresh, empty-registry copy, and stale-id option', () => {
+    expect(managedSectionHtml).toContain('data-agents-refresh-profiles');
+    expect(managedSectionHtml).toContain('data-agents-profiles-empty');
+    expect(managedSectionHtml).toContain('No MCP profiles in the registry');
+    expect(managedSectionHtml).toContain('MCP Registry console');
+    expect(managedSectionHtml).toContain('data-agents-profiles-error');
+    expect(managedSectionHtml).toContain('data-agents-profile-missing');
+    expect(managedSectionHtml).toContain('missing:');
+  });
+
   test('has table actions: toggle, edit, delete', () => {
     expect(managedSectionHtml).toContain('data-agents-enabled-toggle');
     expect(managedSectionHtml).toContain('data-agents-edit');
@@ -122,6 +141,7 @@ describe('Panel mixin', () => {
     for (const fn of [
       'agentMgrLoadAgents',
       'agentMgrLoadMesh',
+      'agentMgrLoadProfiles',
       'agentMgrRefresh',
       'agentMgrOpenCreate',
       'agentMgrOpenEdit',
@@ -134,6 +154,16 @@ describe('Panel mixin', () => {
     ]) {
       expect(agentsMixinJs).toContain(`data.${fn} =`);
     }
+  });
+
+  test('profiles fetch hits the server-side proxy and stores slim rows', () => {
+    expect(agentsMixinJs).toContain("'/mcp-profiles'");
+    expect(agentsMixinJs).toContain('mgr.profiles');
+    expect(agentsMixinJs).toContain('mgr.profilesError');
+    expect(agentsMixinJs).toContain('mgr.profilesLoading');
+    // Drawer open refreshes the picker so new registry profiles show up.
+    expect(agentsMixinJs).toMatch(/agentMgrOpenCreate[\s\S]*agentMgrLoadProfiles\(\)/);
+    expect(agentsMixinJs).toMatch(/agentMgrOpenEdit[\s\S]*agentMgrLoadProfiles\(\)/);
   });
 
   test('initial load kicks off both sections', () => {

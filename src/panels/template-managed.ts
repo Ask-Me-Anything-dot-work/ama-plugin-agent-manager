@@ -63,8 +63,22 @@ export const managedSectionHtml = `<div class="mb-8">
     <label class="block mb-2 text-sm">Model
       <input class="w-full border rounded px-2 py-1" type="text" x-model="agentMgr.form.model" data-agents-field-model />
     </label>
-    <label class="block mb-2 text-sm">MCP profile ID
-      <input class="w-full border rounded px-2 py-1" type="text" x-model="agentMgr.form.mcp_profile_id" data-agents-field-mcp-profile />
+    <label class="block mb-2 text-sm">MCP profile
+      <button type="button" class="ml-2 text-xs text-blue-600" @click="agentMgrLoadProfiles()" data-agents-refresh-profiles>Refresh profiles</button>
+      <select class="w-full border rounded px-2 py-1" x-model="agentMgr.form.mcp_profile_id" data-agents-field-mcp-profile
+        :disabled="agentMgr.profilesLoading || (agentMgr.profiles.length === 0 && !agentMgr.form.mcp_profile_id)">
+        <option value="">None (no MCP tools)</option>
+        <template x-for="p in agentMgr.profiles" :key="p.id">
+          <option :value="p.id" x-text="p.description ? p.label + ' — ' + p.description : p.label"></option>
+        </template>
+        <template x-if="agentMgr.form.mcp_profile_id && !agentMgr.profiles.some(function (p) { return p.id === agentMgr.form.mcp_profile_id; })">
+          <option :value="agentMgr.form.mcp_profile_id" x-text="'(missing: ' + agentMgr.form.mcp_profile_id + ')'" data-agents-profile-missing></option>
+        </template>
+      </select>
+      <p class="text-red-600 text-xs mt-1" x-show="agentMgr.profilesError" x-text="agentMgr.profilesError" data-agents-profiles-error></p>
+      <p class="text-amber-700 text-xs mt-1" x-show="!agentMgr.profilesLoading && !agentMgr.profilesError && agentMgr.profiles.length === 0" data-agents-profiles-empty>
+        No MCP profiles in the registry. Create one in the MCP Registry console, then hit Refresh profiles.
+      </p>
     </label>
     <label class="block mb-3 text-sm">
       <input type="checkbox" x-model="agentMgr.form.enabled" data-agents-field-enabled /> Enabled

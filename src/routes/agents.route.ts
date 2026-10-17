@@ -1,5 +1,9 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
+import {
+  ProfileNotFoundError,
+  RegistryUnavailableError,
+} from '../clients/registry.client.js';
 import { agentsPanelHtml } from '../panels/template.js';
 import { agentsMixinJs } from '../panels/mixin.js';
 import {
@@ -12,6 +16,12 @@ import {
 function sendError(c: Context, err: unknown): Response {
   if (err instanceof ValidationError) {
     return c.json({ error: { code: err.code, message: err.message, details: err.issues } }, 400);
+  }
+  if (err instanceof ProfileNotFoundError) {
+    return c.json({ error: { code: err.code, message: err.message } }, 400);
+  }
+  if (err instanceof RegistryUnavailableError) {
+    return c.json({ error: { code: err.code, message: err.message } }, 503);
   }
   if (err instanceof NameTakenError) {
     return c.json({ error: { code: err.code, message: err.message } }, 409);

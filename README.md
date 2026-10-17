@@ -24,7 +24,9 @@ bun run build   # → dist/
 **Managed agents** (rows in the plugin-owned `agents` table, plugin-owned lifecycle):
 
 - Table: name, description, model, mcp profile, enabled toggle, edit/delete actions. Rows carry a **Managed agent** badge.
-- **Create agent** opens a drawer form: name, description, instructions (textarea), model, mcp_profile_id (text — picker lands in the profile issue), enabled. Save posts to the plugin REST API; 400/409/502 errors render in the drawer's error area.
+- **Create agent** opens a drawer form: name, description, instructions (textarea), model, MCP profile picker, enabled. Save posts to the plugin REST API; 400/409/502/503 errors render in the drawer's error area.
+- **MCP profile picker** (issue #4): a `<select>` populated server-side from `GET /mcp-profiles` (plugin proxy over the registry's `GET /profiles`; PSK never reaches the browser). Options show `label — description`; **"None (no MCP tools)"** clears the field (profile optional, persists `null`). Profiles load on drawer open; **Refresh profiles** re-fetches live (no cache), so newly created registry profiles appear immediately. Empty registry → explanatory copy pointing at the MCP Registry console + disabled select (save-with-None still allowed). A stale id on the row renders as a selected `(missing: id)` option — visible, never silently dropped.
+- **Save-time validation** (fail-closed): a non-null profile id must exist in the registry (`GET /profiles/:id` → 200). Unknown/stale id → `400 PROFILE_NOT_FOUND` ("Profile not found in registry"), row not saved. Registry unreachable/unconfigured → `503 REGISTRY_UNAVAILABLE` with an actionable message naming `REGISTRY_URL`/`REGISTRY_PSK`, row not saved. Clearing to null skips validation; the enabled toggle (`PATCH`) never re-validates.
 - **Edit** reopens the drawer prefilled; **Save** PUTs. The enabled checkbox PATCHes `{enabled}` and persists. **Delete** removes the row.
 - Validation (server authoritative): `name` required + unique (409 `NAME_TAKEN`), `instructions` required, `model` required; description/mcp_profile_id nullable.
 - Empty DB shows "No agents yet"; core/DB failures render an inline error banner (no crash).
@@ -79,6 +81,13 @@ sudo systemctl restart ama-orchestrator && curl -s localhost:3100/plugins/@ama-w
 
 # Mesh agents (needs CONSOLE_TOKEN; see config below)
 curl -s localhost:3100/plugins/@ama-work/agent-manager/mesh-agents | jq
+
+# MCP profile picker (needs REGISTRY_URL/REGISTRY_PSK; see config below)
+curl -s localhost:3100/plugins/@ama-work/agent-manager/mcp-profiles | jq
+# stale id → 400 PROFILE_NOT_FOUND, row not saved:
+curl -s -X POST localhost:3100/plugins/@ama-work/agent-manager/agents \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"x","instructions":"do","model":"m","mcp_profile_id":"stale-id"}' | jq
 ```
 
 ## Plugin routes
@@ -89,12 +98,13 @@ Mounted under `/plugins/@ama-work/agent-manager/`:
 |---|---|
 | `GET /health` | `{ "status": "ok" }` |
 | `GET /agents` | `ManagedAgent[]` |
-| `POST /agents` | `201 ManagedAgent` \| `400 VALIDATION_ERROR` \| `409 NAME_TAKEN` |
+| `POST /agents` | `201 ManagedAgent` \| `400 VALIDATION_ERROR` \| `400 PROFILE_NOT_FOUND` \| `409 NAME_TAKEN` \| `503 REGISTRY_UNAVAILABLE` |
 | `GET /agents/:id` | `ManagedAgent` \| `404 AGENT_NOT_FOUND` |
-| `PUT /agents/:id` | `ManagedAgent` \| `400` \| `404` \| `409` |
+| `PUT /agents/:id` | `ManagedAgent` \| `400` \| `404` \| `409` \| `503 REGISTRY_UNAVAILABLE` |
 | `PATCH /agents/:id` | `ManagedAgent` — body `{ "enabled": boolean }` \| `400` \| `404` |
 | `DELETE /agents/:id` | `204` \| `404` |
 | `GET /mesh-agents` | `MeshAgentView[]` \| `502 CORE_UNREACHABLE` \| `503 CONSOLE_TOKEN_MISSING` |
+| `GET /mcp-profiles` | `{ profiles: [{ id, label, description }] }` \| `503 REGISTRY_UNAVAILABLE` |
 | `GET /console/agents-panel.html` | HTML fragment |
 | `GET /console/agents-mixin.js` | ESM mixin (`text/javascript`) |
 
@@ -104,13 +114,13 @@ Mounted under `/plugins/@ama-work/agent-manager/`:
 
 Precedence: **plugin config row → process env → default** (in-process deploy needs zero config). Set plugin config via `UPDATE plugins SET config = …` (no console UI yet).
 
-| Key | Runtime since #2 | Fallback | Purpose |
+| Key | Runtime since | Fallback | Purpose |
 |---|---|---|---|
-| `CONSOLE_TOKEN` | yes | `process.env.CONSOLE_TOKEN` | `X-Console-Token` for server-side `GET /api/repos` mesh fetch. Missing both → mesh section 503. |
-| `ORCHESTRATOR_URL` | yes | `process.env.ORCHESTRATOR_URL` → `http://localhost:3100` | Base URL for mesh fetch + synthesized agent URLs. |
-| `DATABASE_URL` | yes | `process.env.DATABASE_URL` → `POSTGRES_USER`/`PROJECT_NAME` + `POSTGRES_PASSWORD` + `PGDATABASE` (`POSTGRES_HOST`/`POSTGRES_PORT`, defaults `localhost:5432`) | Postgres DSN for the plugin-owned pool (ADR-002). |
-| `REGISTRY_URL` | reserved | — | Registry source override for installs (later) |
-| `REGISTRY_PSK` | reserved | — | Registry auth pre-shared key (later) |
+| `CONSOLE_TOKEN` | #2 | `process.env.CONSOLE_TOKEN` | `X-Console-Token` for server-side `GET /api/repos` mesh fetch. Missing both → mesh section 503. |
+| `ORCHESTRATOR_URL` | #2 | `process.env.ORCHESTRATOR_URL` → `http://localhost:3100` | Base URL for mesh fetch + synthesized agent URLs. |
+| `DATABASE_URL` | #2 | `process.env.DATABASE_URL` → `POSTGRES_USER`/`PROJECT_NAME` + `POSTGRES_PASSWORD` + `PGDATABASE` (`POSTGRES_HOST`/`POSTGRES_PORT`, defaults `localhost:5432`) | Postgres DSN for the plugin-owned pool (ADR-002). |
+| `REGISTRY_URL` | #4 | `process.env.REGISTRY_URL` | Base URL of `ama-mcp-registry` (e.g. `http://localhost:3303`). Missing both → `/mcp-profiles` 503 + fail-closed saves carrying a profile (ADR-003). |
+| `REGISTRY_PSK` | #4 | `process.env.REGISTRY_PSK` | Registry auth pre-shared key (`Authorization: Bearer`). Stays server-side; never returned to the browser. |
 
 ## Release
 

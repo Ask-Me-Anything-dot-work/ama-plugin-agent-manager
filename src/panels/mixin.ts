@@ -6,32 +6,18 @@ export const agentsMixinJs = `const AGENT_API = '/plugins/@ama-work/agent-manage
 
 export default function setup(data) {
   const mgr = {
-    agents: [],
-    meshAgents: [],
-    loading: false,
-    meshLoading: false,
-    error: null,
-    meshError: null,
-    drawerOpen: false,
-    drawerMode: 'create',
-    editingId: null,
-    saving: false,
-    formError: null,
-    form: emptyForm(),
-    detailOpen: false,
-    detailAgent: null,
+    agents: [], meshAgents: [], loading: false, meshLoading: false,
+    error: null, meshError: null, drawerOpen: false, drawerMode: 'create',
+    editingId: null, saving: false, formError: null, form: emptyForm(),
+    profiles: [], profilesLoading: false, profilesError: null,
+    detailOpen: false, detailAgent: null,
   };
   data.agentMgr = mgr;
 
   function emptyForm() {
     return { name: '', description: '', instructions: '', model: '', mcp_profile_id: '', enabled: true };
   }
-
-  function messageOf(res, body, fallback) {
-    if (body && body.error && body.error.message) return body.error.message;
-    return fallback + ' (' + res.status + ')';
-  }
-
+  function messageOf(res, body, fallback) { return body && body.error && body.error.message ? body.error.message : fallback + ' (' + res.status + ')'; }
   data.agentMgrLoadAgents = async function () {
     mgr.loading = true;
     mgr.error = null;
@@ -61,6 +47,22 @@ export default function setup(data) {
     }
   };
 
+  data.agentMgrLoadProfiles = async function () {
+    mgr.profilesLoading = true;
+    mgr.profilesError = null;
+    try {
+      const res = await fetch(AGENT_API + '/mcp-profiles');
+      const body = await res.json().catch(function () { return null; });
+      if (!res.ok) throw new Error(messageOf(res, body, 'Failed to load MCP profiles'));
+      mgr.profiles = body.profiles || [];
+    } catch (err) {
+      mgr.profiles = [];
+      mgr.profilesError = err instanceof Error ? err.message : String(err);
+    } finally {
+      mgr.profilesLoading = false;
+    }
+  };
+
   data.agentMgrRefresh = function () {
     data.agentMgrLoadAgents();
     data.agentMgrLoadMesh();
@@ -72,6 +74,7 @@ export default function setup(data) {
     mgr.formError = null;
     mgr.form = emptyForm();
     mgr.drawerOpen = true;
+    data.agentMgrLoadProfiles();
   };
 
   data.agentMgrOpenEdit = function (agent) {
@@ -87,11 +90,10 @@ export default function setup(data) {
       enabled: Boolean(agent.enabled),
     };
     mgr.drawerOpen = true;
+    data.agentMgrLoadProfiles();
   };
 
-  data.agentMgrCloseDrawer = function () {
-    mgr.drawerOpen = false;
-  };
+  data.agentMgrCloseDrawer = function () { mgr.drawerOpen = false; };
 
   data.agentMgrSave = async function () {
     mgr.formError = null;
@@ -158,9 +160,7 @@ export default function setup(data) {
     mgr.detailOpen = true;
   };
 
-  data.agentMgrCloseDetail = function () {
-    mgr.detailOpen = false;
-  };
+  data.agentMgrCloseDetail = function () { mgr.detailOpen = false; };
 
   data.agentMgrRefresh();
 }
