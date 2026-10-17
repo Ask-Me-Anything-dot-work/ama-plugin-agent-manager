@@ -56,7 +56,8 @@ describe('Managed section affordances', () => {
     expect(managedSectionHtml).toContain('data-agents-field-enabled');
   });
 
-  test('has table actions: toggle, edit, delete', () => {
+  test('has table actions: chat, toggle, edit, delete', () => {
+    expect(managedSectionHtml).toContain('data-agents-chat');
     expect(managedSectionHtml).toContain('data-agents-enabled-toggle');
     expect(managedSectionHtml).toContain('data-agents-edit');
     expect(managedSectionHtml).toContain('data-agents-delete');

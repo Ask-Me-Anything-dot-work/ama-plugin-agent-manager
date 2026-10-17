@@ -1,22 +1,43 @@
 import type { OrchestratorPlugin, PluginBridge } from '@ama-work/plugin-contract';
 import { Hono } from 'hono';
 import { join } from 'node:path';
+import { createOrchestratorChatClient } from './clients/orchestrator.client.js';
 import { createReposClient } from './clients/repos.client.js';
 import { loadPluginConfig, resolveRuntimeConfig, type ResolvedRuntimeConfig } from './config/plugin-config.js';
 import { closePool, ensurePool, resolveDatabaseUrl } from './db/pool.js';
 import { consolePanel } from './panels/console.js';
 import { PgAgentsRepository } from './repositories/agents.repository.js';
+import { PgChatRepository } from './repositories/chat.repository.js';
 import { createAgentsRouter } from './routes/agents.route.js';
+import { createChatRouter } from './routes/chat.route.js';
 import { createMeshAgentsRouter } from './routes/mesh-agents.route.js';
 import { AgentsService } from './services/agents.service.js';
+import { ChatService } from './services/chat.service.js';
 
 function buildRouter(config: ResolvedRuntimeConfig): Hono {
   // Pool is lazy (ADR-002): missing DSN surfaces on first agents request, not at start.
-  const repo = new PgAgentsRepository(() => ensurePool(resolveDatabaseUrl(config.databaseUrl)));
+  const acquirePool = () => ensurePool(resolveDatabaseUrl(config.databaseUrl));
+  const repo = new PgAgentsRepository(acquirePool);
   const client = createReposClient({ baseUrl: config.orchestratorUrl, token: config.consoleToken });
+  const chatClient = createOrchestratorChatClient({
+    baseUrl: config.orchestratorUrl,
+    consoleToken: config.consoleToken,
+    psk: config.orchestratorPsk,
+  });
   const router = new Hono();
   router.route('/', createAgentsRouter(new AgentsService(repo)));
   router.route('/', createMeshAgentsRouter({ client, orchestratorUrl: config.orchestratorUrl }));
+  router.route(
+    '/',
+    createChatRouter(
+      new ChatService({
+        agents: repo,
+        chat: new PgChatRepository(acquirePool),
+        client: chatClient,
+        pollTimeoutMs: config.chatPollTimeoutMs,
+      }),
+    ),
+  );
   return router;
 }
 
