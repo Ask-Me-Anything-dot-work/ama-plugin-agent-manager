@@ -1,0 +1,12 @@
+.env
+.env.*
+**/.env.*
+node_modules/
+dist/
+logs/
+coverage/
+opencode.json
+.cache/
+.agents/mcp_config.json
+.bootstrap.done
+.DS_Store

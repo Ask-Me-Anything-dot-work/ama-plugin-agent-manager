@@ -1,0 +1,55 @@
+{
+  "name": "@ama-work/agent-manager",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "lint": "eslint . && tsc --noEmit && knip",
+    "test": "bun test",
+    "release": "semantic-release",
+    "prepublishOnly": "bun run build",
+    "prepare": "husky || [ $? -eq 127 ]"
+  },
+  "dependencies": {
+    "@ama-work/plugin-contract": "^1.0.1",
+    "hono": "^4.8.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@commitlint/types": "^21.2.0",
+    "@eslint/js": "^10.0.1",
+    "@semantic-release/commit-analyzer": "12",
+    "@semantic-release/git": "10",
+    "@semantic-release/github": "^12.0.9",
+    "@semantic-release/npm": "12",
+    "@semantic-release/release-notes-generator": "12",
+    "@types/bun": "latest",
+    "conventional-changelog-conventionalcommits": "^9.0.0",
+    "eslint": "^10.4.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "husky": "^9.1.7",
+    "knip": "^5.10.2",
+    "semantic-release": "24",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.59.3"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "provenance": null,
+  "files": [
+    "dist",
+    "README.md",
+    "migrations",
+    "plugin.json"
+  ]
+}
