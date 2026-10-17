@@ -1,0 +1,7 @@
+{
+  "id": "agent-manager",
+  "name": "Agent Manager",
+  "version": "0.0.0",
+  "description": "Agent Manager plugin for the Orchestrator: Agents console panel, agents table migration, and plugin-owned routes.",
+  "provides": ["agents-panel", "agents-api"]
+}
