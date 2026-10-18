@@ -34,6 +34,7 @@ export const managedSectionHtml = `<div class="mb-8">
             <span class="ml-1" x-text="agent.enabled ? 'Enabled' : 'Disabled'"></span>
           </td>
           <td class="py-1">
+            <button type="button" class="text-blue-600 mr-2" @click="agentMgrOpenChat(agent)" data-agents-chat>Chat</button>
             <button type="button" class="text-blue-600 mr-2" @click="agentMgrOpenEdit(agent)" data-agents-edit>Edit</button>
             <button type="button" class="text-red-600" @click="agentMgrDelete(agent)" data-agents-delete>Delete</button>
           </td>
