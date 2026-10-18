@@ -5,6 +5,7 @@
 // Chat handlers live in chat-mixin.ts (max-lines split) and are inlined
 // into the same closure below.
 import { chatHandlersJs } from './chat-mixin.js';
+import { profileHandlersJs } from './profiles-mixin.js';
 
 export const agentsMixinJs = `const AGENT_API = '/plugins/@ama-work/agent-manager';
 
@@ -48,22 +49,6 @@ export default function setup(data) {
       mgr.meshError = err instanceof Error ? err.message : String(err);
     } finally {
       mgr.meshLoading = false;
-    }
-  };
-
-  data.agentMgrLoadProfiles = async function () {
-    mgr.profilesLoading = true;
-    mgr.profilesError = null;
-    try {
-      const res = await fetch(AGENT_API + '/mcp-profiles');
-      const body = await res.json().catch(function () { return null; });
-      if (!res.ok) throw new Error(messageOf(res, body, 'Failed to load MCP profiles'));
-      mgr.profiles = body.profiles || [];
-    } catch (err) {
-      mgr.profiles = [];
-      mgr.profilesError = err instanceof Error ? err.message : String(err);
-    } finally {
-      mgr.profilesLoading = false;
     }
   };
 
@@ -166,6 +151,7 @@ export default function setup(data) {
 
   data.agentMgrCloseDetail = function () { mgr.detailOpen = false; };
 
+${profileHandlersJs}
 ${chatHandlersJs}
   data.agentMgrRefresh();
 }
