@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 // CONSOLE_TOKEN / ORCHESTRATOR_URL / DATABASE_URL are consumed at runtime
 // since #2 (managed CRUD + mesh section); ORCHESTRATOR_PSK + CHAT_POLL_TIMEOUT_MS
-// since #3 (chat proxy); REGISTRY_* stay reserved.
+// since #3 (chat proxy); REGISTRY_URL / REGISTRY_PSK activated by #4
+// (profile picker + save-time validation).
 export const pluginConfigSchema = z
   .object({
     REGISTRY_URL: z.string().url().optional(),
@@ -25,6 +26,8 @@ export interface ResolvedRuntimeConfig {
   orchestratorUrl: string;
   orchestratorPsk: string | undefined;
   databaseUrl: string | undefined;
+  registryUrl: string | undefined;
+  registryPsk: string | undefined;
   chatPollTimeoutMs: number;
 }
 
@@ -53,6 +56,7 @@ function resolvePollTimeout(
 }
 
 // Stored plugin config wins; process.env is the in-process fallback (ADR-002/D3).
+
 export function resolveRuntimeConfig(
   config: Partial<PluginConfig> | undefined,
   env: Record<string, string | undefined> = process.env,
@@ -63,6 +67,8 @@ export function resolveRuntimeConfig(
       firstNonEmpty(config?.ORCHESTRATOR_URL, env.ORCHESTRATOR_URL) ?? DEFAULT_ORCHESTRATOR_URL,
     orchestratorPsk: firstNonEmpty(config?.ORCHESTRATOR_PSK, env.ORCHESTRATOR_PSK),
     databaseUrl: firstNonEmpty(config?.DATABASE_URL, env.DATABASE_URL),
+    registryUrl: firstNonEmpty(config?.REGISTRY_URL, env.REGISTRY_URL),
+    registryPsk: firstNonEmpty(config?.REGISTRY_PSK, env.REGISTRY_PSK),
     chatPollTimeoutMs: resolvePollTimeout(config, env),
   };
 }

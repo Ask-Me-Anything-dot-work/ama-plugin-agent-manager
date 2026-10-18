@@ -5,6 +5,7 @@ import type {
   ManagedAgent,
   ManagedAgentFields,
 } from '../repositories/agents.repository.js';
+import type { ProfileValidator } from './mcp-profile.validator.js';
 
 // Server-authoritative validation (D6): name/instructions/model required,
 // description + mcp_profile_id nullable; id + enabled set by server.
@@ -65,7 +66,10 @@ function toFields(input: z.infer<typeof managedAgentFieldsSchema>): ManagedAgent
 
 // Validation + CRUD rules only; SQL lives in the repository (agent-contract SRP).
 export class AgentsService {
-  constructor(private readonly repo: AgentsRepository) {}
+  constructor(
+    private readonly repo: AgentsRepository,
+    private readonly validateProfile?: ProfileValidator,
+  ) {}
 
   list(): Promise<ManagedAgent[]> {
     return this.repo.list();
@@ -79,6 +83,7 @@ export class AgentsService {
 
   async create(body: unknown): Promise<ManagedAgent> {
     const fields = this.parse(body);
+    await this.checkProfile(fields);
     const now = new Date();
     const agent: ManagedAgent = {
       id: randomUUID(),
@@ -97,6 +102,7 @@ export class AgentsService {
 
   async update(id: string, body: unknown): Promise<ManagedAgent> {
     const fields = this.parse(body);
+    await this.checkProfile(fields);
     try {
       const updated = await this.repo.update(id, fields);
       if (!updated) throw new AgentNotFoundError(id);
@@ -133,5 +139,12 @@ export class AgentsService {
       );
     }
     return toFields(parsed.data);
+  }
+
+  // Fail-closed save validation (D3/D4): null profile skips the registry probe.
+  private async checkProfile(fields: ManagedAgentFields): Promise<void> {
+    if (fields.mcp_profile_id && this.validateProfile) {
+      await this.validateProfile(fields.mcp_profile_id);
+    }
   }
 }

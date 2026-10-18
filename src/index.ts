@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { join } from 'node:path';
 import { createOrchestratorChatClient } from './clients/orchestrator.client.js';
 import { createReposClient } from './clients/repos.client.js';
+import { createRegistryClient } from './clients/registry.client.js';
 import { loadPluginConfig, resolveRuntimeConfig, type ResolvedRuntimeConfig } from './config/plugin-config.js';
 import { closePool, ensurePool, resolveDatabaseUrl } from './db/pool.js';
 import { consolePanel } from './panels/console.js';
@@ -11,7 +12,9 @@ import { PgChatRepository } from './repositories/chat.repository.js';
 import { createAgentsRouter } from './routes/agents.route.js';
 import { createChatRouter } from './routes/chat.route.js';
 import { createMeshAgentsRouter } from './routes/mesh-agents.route.js';
+import { createMcpProfilesRouter } from './routes/mcp-profiles.route.js';
 import { AgentsService } from './services/agents.service.js';
+import { createMcpProfileValidator } from './services/mcp-profile.validator.js';
 import { ChatService } from './services/chat.service.js';
 
 function buildRouter(config: ResolvedRuntimeConfig): Hono {
@@ -19,14 +22,16 @@ function buildRouter(config: ResolvedRuntimeConfig): Hono {
   const acquirePool = () => ensurePool(resolveDatabaseUrl(config.databaseUrl));
   const repo = new PgAgentsRepository(acquirePool);
   const client = createReposClient({ baseUrl: config.orchestratorUrl, token: config.consoleToken });
+  const registry = createRegistryClient({ baseUrl: config.registryUrl, psk: config.registryPsk });
   const chatClient = createOrchestratorChatClient({
     baseUrl: config.orchestratorUrl,
     consoleToken: config.consoleToken,
     psk: config.orchestratorPsk,
   });
   const router = new Hono();
-  router.route('/', createAgentsRouter(new AgentsService(repo)));
+  router.route('/', createAgentsRouter(new AgentsService(repo, createMcpProfileValidator(registry))));
   router.route('/', createMeshAgentsRouter({ client, orchestratorUrl: config.orchestratorUrl }));
+  router.route('/', createMcpProfilesRouter(registry));
   router.route(
     '/',
     createChatRouter(
