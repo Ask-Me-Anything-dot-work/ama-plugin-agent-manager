@@ -1,4 +1,4 @@
-# ADR-003: Fail-closed MCP profile validation via server-side registry proxy
+# ADR-004: Fail-closed MCP profile validation via server-side registry proxy
 
 **Status:** accepted
 **Date:** 2026-10-17

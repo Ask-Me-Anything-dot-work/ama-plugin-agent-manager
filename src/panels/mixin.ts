@@ -2,6 +2,10 @@
 // and calls the default export (Alpine setup fn) with the plugins view's
 // shared `data` object — all state lives under data.agentMgr (D4) and all
 // handlers are agentMgr*-prefixed to avoid clobbering Plugins panel state.
+// Chat handlers live in chat-mixin.ts (max-lines split) and are inlined
+// into the same closure below.
+import { chatHandlersJs } from './chat-mixin.js';
+
 export const agentsMixinJs = `const AGENT_API = '/plugins/@ama-work/agent-manager';
 
 export default function setup(data) {
@@ -162,6 +166,7 @@ export default function setup(data) {
 
   data.agentMgrCloseDetail = function () { mgr.detailOpen = false; };
 
+${chatHandlersJs}
   data.agentMgrRefresh();
 }
 `;
